@@ -1,27 +1,7 @@
-module.exports = (info) => {
-  let installed = info.exists("app/env")
-  let running = info.running("start.js")
-  if (running) {
-    return {
-      menu: [
-        { icon: "fa-solid fa-terminal", text: "Terminal", href: "start.js" }
-      ]
-    }
-  } else {
-    if (installed) {
-      return {
-        menu: [
-          { icon: "fa-solid fa-play", text: "Launch", href: "start.js", default: true },
-          { icon: "fa-solid fa-rotate", text: "Update", href: "update.js" },
-          { icon: "fa-solid fa-trash-can", text: "Reset", href: "reset.js" }
-        ]
-      }
-    } else {
-      return {
-        menu: [
-          { icon: "fa-solid fa-download", text: "Install", href: "install.js", default: true }
-        ]
-      }
-    }
-  }
-}
+module.exports = {
+    version: '1.8.0',
+    title: 'EZ-CorridorKey',
+    description: 'Perfect Green Screen Keys made EZ!',
+    icon: 'facefusion.png',   // Puedes cambiar a un icono propio si lo tienes
+    menu: require(__dirname + '/menu.js')
+};
