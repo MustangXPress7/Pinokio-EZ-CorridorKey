@@ -1,75 +1,69 @@
-module.exports = {
-  run: [
-    // Step 1: Install UV if not available
-    {
-      method: "shell.run",
-      params: {
-        message: "if command -v uv &>/dev/null; then echo \\"[OK] uv already installed\\"; else curl -LsSf https://astral.sh/uv/install.sh | sh; fi",
-        path: "app"
-      }
-    },
-    // Step 2: Install Python dependencies using uv (or pip as fallback within uv)
-    {
-      method: "shell.run",
-      params: {
-        venv: "env", // Use 'env' for Pinokio's managed venv
-        path: "app",
-        message: [
-          "uv pip install --torch-backend=auto -e ."
-        ],
-      }
-    },
-    // Step 3: Optional MLX acceleration for Apple Silicon
-    {
-      when: "{{platform === 'darwin' && arch === 'arm64'}}",
-      method: "shell.run",
-      params: {
-        venv: "env",
-        path: "app",
-        message: [
-          "uv pip install -e .[mlx]",
-          "python scripts/setup_models.py --corridorkey-mlx"
-        ],
-        on: [{ "event": /^(.*)/, "done": true }] // Capture all output and continue
-      }
-    },
-    // Step 4: Optional SAM2 tracker support and model download
-    {
-      method: "shell.run",
-      params: {
-        venv: "env",
-        path: "app",
-        message: [
-          "uv pip install -e .[tracker]",
-          "python scripts/setup_models.py --sam2"
-        ],
-        on: [{ "event": /^(.*)/, "done": true }] // Capture all output and continue
-      }
-    },
-    // Step 5: Download CorridorKey model weights
-    {
-      method: "shell.run",
-      params: {
-        venv: "env",
-        path: "app",
-        message: [
-          "python scripts/setup_models.py --corridorkey"
-        ]
-      }
-    },
-    // Step 6: Check for FFmpeg
-    {
-      method: "shell.run",
-      params: {
-        venv: "env",
-        path: "app",
-        message: "python scripts/check_ffmpeg.py",
-        on: [{
-          event: /\[WARN\] Video import\/export requires FFmpeg 7\.0\+ and FFprobe\./,
-          done: true,
-          notify: "FFmpeg not found. Please install it manually for full functionality. Refer to the project's README for instructions."
-        }]
-      }
+const path = require('path');
+const fs = require('fs');
+
+module.exports = async kernel => {
+    const { platform } = kernel;
+    const repoUrl = 'https://github.com/edenaion/EZ-CorridorKey.git';
+    const targetDir = path.resolve(__dirname, 'app');
+    const steps = [];
+
+    // 1. Clonar el repositorio si no existe
+    if (!fs.existsSync(targetDir)) {
+        steps.push({
+            method: 'shell.run',
+            params: {
+                message: `git clone ${repoUrl} app`,
+                path: __dirname,
+                on: [{ event: /error/i, break: false }]
+            }
+        });
     }
-  ]
-}
+
+    // 2. Variables de entorno para evitar prompts interactivos
+    const envVars = {
+        CORRIDORKEY_INSTALL_SAM2: 'y',
+        CORRIDORKEY_PREDOWNLOAD_SAM2: 'y',
+        CORRIDORKEY_INSTALL_GVM: 'n',
+        CORRIDORKEY_INSTALL_VIDEOMAMA: 'n',
+        CORRIDORKEY_CREATE_SHORTCUT: 'n'
+    };
+
+    // 3. Construir comando según plataforma
+    let installCmd;
+    if (platform === 'win32') {
+        const setEnv = Object.entries(envVars)
+            .map(([k, v]) => `set "${k}=${v}"`)
+            .join(' & ');
+        installCmd = `cmd /c "${setEnv} & echo. | 1-install.bat"`;
+    } else {
+        const exportEnv = Object.entries(envVars)
+            .map(([k, v]) => `export ${k}=${v}`)
+            .join('; ');
+        installCmd = `sh -c "${exportEnv}; ./1-install.sh"`;
+    }
+
+    steps.push({
+        method: 'shell.run',
+        params: {
+            message: installCmd,
+            path: targetDir,
+            on: [{ event: /error/i, break: false }]
+        }
+    });
+
+    // 4. Mensaje de finalización
+    steps.push({
+        method: 'input',
+        params: {
+            title: 'Instalación completada',
+            description: 'EZ-CorridorKey se ha instalado. Regresa al dashboard para iniciarlo.'
+        }
+    });
+
+    steps.push({
+        method: 'browser.open',
+        params: { uri: '/?selected=corridorkey' }
+    });
+
+    return { run: steps };
+};
