@@ -1,52 +1,29 @@
-module.exports = {
-  run: [
-    {
-      method: "fs.rm",
-      params: {
-        path: "app/.venv",
-        force: true,
-        recursive: true
-      }
-    },
-    {
-      method: "fs.rm",
-      params: {
-        path: "app/venv",
-        force: true,
-        recursive: true
-      }
-    },
-    {
-      method: "fs.rm",
-      params: {
-        path: "app/CorridorKeyModule/checkpoints",
-        force: true,
-        recursive: true
-      }
-    },
-    {
-      method: "fs.rm",
-      params: {
-        path: "app/gvm_core/checkpoints",
-        force: true,
-        recursive: true
-      }
-    },
-    {
-      method: "fs.rm",
-      params: {
-        path: "app/sam2_tracker/checkpoints",
-        force: true,
-        recursive: true
-      }
-    },
-    {
-      method: "fs.rm",
-      params: {
-        path: "app/VideoMaMaInferenceModule/checkpoints",
-        force: true,
-        recursive: true
-      }
-    }
-  ]
-}
+const path = require('path');
+
+module.exports = async kernel => {
+    const appDir = path.resolve(__dirname, 'app');
+
+    return {
+        run: [
+            {
+                method: 'fs.rm',
+                params: {
+                    path: appDir,
+                    recursive: true,
+                    force: true
+                }
+            },
+            {
+                method: 'input',
+                params: {
+                    title: 'Reset completado',
+                    description: 'Se ha eliminado la instalación de EZ-CorridorKey. Puedes volver a instalar desde el dashboard.'
+                }
+            },
+            {
+                method: 'browser.open',
+                params: { uri: '/?selected=corridorkey' }
+            }
+        ]
+    };
+};
