@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "title": "EZ-CorridorKey",
+  "description": "AI Green Screen Keyer & Alpha Generator",
+  "icon": "icon.png",
+  "plugin": {
+    "menu": []
+  }
+}

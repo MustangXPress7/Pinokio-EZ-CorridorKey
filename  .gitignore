@@ -1,0 +1,4 @@
+app/
+logs/
+*.log
+icon.png
